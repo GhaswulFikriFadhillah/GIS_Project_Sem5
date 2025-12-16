@@ -165,8 +165,9 @@ function initMap() {
         if (feature && feature.get('id_rumah')) {
             const coordinates = feature.getGeometry().getCoordinates();
             const props = feature.getProperties();
-            
+
             // Mengambil nilai
+            // data penduduk
             const kelurahan = props.kelurahan || '-';
             const idRumah = props.id_rumah || '-';
             const alamat = props.alamat || '-';
