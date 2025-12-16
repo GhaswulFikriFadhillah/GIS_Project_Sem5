@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Peta Sebaran ISPA - OpenLayers</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" />
+    <!-- OpenLayers CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css" type="text/css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Map Container -->
+    <div id="map" class="map"></div>
+
+    <!-- Container untuk checkbox -->
+    <div class="overlay-container">
+        <h5>Layer Control</h5>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="polygon" checked>
+            <label class="form-check-label" for="polygon">
+                Polygon Prov Riau
+            </label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="point" checked>
+            <label class="form-check-label" for="point">
+                Titik Penderita ISPA
+            </label>
+        </div>
+        <hr>
+        <h5>Info Hover:</h5>
+        <div id="info" class="text-muted small">&nbsp;Arahkan kursor ke area...</div>
+    </div>
+
+    <!-- Container Popup -->
+    <div id="popup" class="ol-popup">
+        <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+        <div id="popup-content"></div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- OpenLayers JS -->
+    <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
+    <!-- Custom JS -->
+    <script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+import './style.css';
+import Map from 'ol/Map.js';
+import View from 'ol/View.js';
+import TileLayer from 'ol/layer/Tile.js';
+import VectorLayer from 'ol/layer/Vector.js';
+import OSM from 'ol/source/OSM.js';
+import VectorSource from 'ol/source/Vector.js';
+import GeoJSON from 'ol/format/GeoJSON.js';
+import { fromLonLat } from 'ol/proj.js';
+import { Icon, Style } from 'ol/style.js';
+import Overlay from 'ol/Overlay.js';
+
+map.addOverlay(overlay); //untuk menambah overlay
+// JS for click popup
+map.on('singleclick', function (evt) {
+  const feature = map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+    return feature;
+  });
+  if (!feature) {
+    return;
+  }
+  const coordinate = evt.coordinate;
+  const content = '<h3>Nama Daerah: ' + feature.get('Nama_Pemetaan') + '</h3>' + '<p>Jumlah Korban: ' + feature.get('Jumlah_Korban') + '</p>';
+  //const content = '<h3>Nama Daerah: ' + feature.get('alamat') +'</h3>' + '<p>Jumlah Penderita: ' + feature.get('jumlah_pen') + '</p>Jenis Bahan Bakar: ' 
+  //+ feature.get('jenis_baha') + '</p>Ventilasi: ' + feature.get('ventilasi_') + '</p>';
+  content_element.innerHTML = content;
+  overlay.setPosition(coordinate);
+});
+
+//Click handler to hide popup
+closer.onclick = function () {
+  overlay.setPosition(undefined);
+  closer.blur();
+  return false;
+};
