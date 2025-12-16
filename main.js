@@ -1,6 +1,6 @@
 // --- GLOBAL VARIABLES ---
 let map;
-let pendudukLayer, riauLayer;
+let pendudukLayer, riauLayer, bufferLayer; // Tambah bufferLayer
 let pendudukSource;
 
 // --- DOM ELEMENTS ---
@@ -50,22 +50,39 @@ function initMap() {
         return false;
     };
 
-    // 1. Source Data (MENGAMBIL DARI FILE JSON)
-    // Menggunakan 'url' dan 'format', OpenLayers akan otomatis melakukan fetch ke file
+    // 1. Source Data
     
+    // A. Data Penduduk
     pendudukSource = new ol.source.Vector({
-        url: 'data/penduduk2.json', // Pastikan nama file sesuai
+        url: 'data/penduduk2.json',
         format: new ol.format.GeoJSON()
     });
 
-    const riauSource = new ol.source.Vector({
-        url: 'data/polygon_riau.json', // Pastikan nama file sesuai
-        format: new ol.format.GeoJSON()
-    });
-
-    // Listener khusus: Update statistik hanya setelah data selesai dimuat dari file
+    // LOGIKA FILTER: Hanya ambil 100 data (FID < 100)
     pendudukSource.on('featuresloadend', function() {
-        updateStats();
+        const features = pendudukSource.getFeatures();
+        // Loop backwards untuk aman saat menghapus
+        for (let i = features.length - 1; i >= 0; i--) {
+            const f = features[i];
+            const fid = f.get('FID');
+            // Hapus jika FID >= 100 (Jadi hanya sisa 0-99)
+            if (fid >= 100) {
+                pendudukSource.removeFeature(f);
+            }
+        }
+        updateStats(); // Update statistik setelah filter selesai
+    });
+
+    // B. Data Polygon Riau
+    const riauSource = new ol.source.Vector({
+        url: 'data/polygon_riau.json',
+        format: new ol.format.GeoJSON()
+    });
+
+    // C. Data Buffer (Baru - Placeholder)
+    const bufferSource = new ol.source.Vector({
+        url: 'buffer.json', // File menyusul, saat ini mungkin kosong/error 404 tidak masalah
+        format: new ol.format.GeoJSON()
     });
 
     // 2. Styles
@@ -74,13 +91,26 @@ function initMap() {
         fill: new ol.style.Fill({ color: 'rgba(59, 130, 246, 0.1)' })
     });
 
+    // Style Buffer (Warna oranye transparan standar buffer)
+    const styleBuffer = new ol.style.Style({
+        stroke: new ol.style.Stroke({ color: '#f59e0b', width: 2 }), 
+        fill: new ol.style.Fill({ color: 'rgba(251, 191, 36, 0.3)' })
+    });
+
     // Style Function untuk Titik (Dinamis berdasarkan filter)
     const stylePenduduk = function(feature) {
-        // Mengambil properti sesuai key di JSON Anda (misal: ventilasi_)
         const vent = feature.get('ventilasi_');
         
-        // Logic warna: Jika 'buruk' merah, selain itu hijau
-        const color = (vent && vent.toLowerCase() === 'buruk') ? '#ef4444' : '#10b981'; 
+        let color = '#10b981'; // Default: Baik (Hijau)
+        
+        if (vent) {
+            const vLower = vent.toLowerCase();
+            if (vLower === 'buruk') {
+                color = '#ef4444'; // Buruk (Merah)
+            } else if (vLower === 'cukup') {
+                color = '#eab308'; // Cukup (Kuning) - Sesuai request
+            }
+        }
         
         return new ol.style.Style({
             image: new ol.style.Circle({
@@ -97,6 +127,12 @@ function initMap() {
         style: styleRiau
     });
 
+    // Layer Buffer Baru
+    bufferLayer = new ol.layer.Vector({
+        source: bufferSource,
+        style: styleBuffer
+    });
+
     pendudukLayer = new ol.layer.Vector({
         source: pendudukSource,
         style: stylePenduduk
@@ -108,10 +144,10 @@ function initMap() {
         layers: [
             new ol.layer.Tile({ source: new ol.source.OSM() }),
             riauLayer,
+            bufferLayer, // Letakkan di bawah titik penduduk
             pendudukLayer
         ],
         view: new ol.View({
-            // Pusatkan ke Riau (Sekitar Pekanbaru)
             center: ol.proj.fromLonLat([101.447779, 0.533333]), 
             zoom: 13
         }),
@@ -124,18 +160,24 @@ function initMap() {
             return feat;
         });
 
-        // Pastikan yang diklik adalah titik (cek properti 'alamat' atau 'id_rumah' biar polygon tidak kena)
-        if (feature && feature.get('FID')) {
+        // Pastikan popup HANYA muncul jika feature punya 'id_rumah' (Layer Penduduk)
+        // Layer buffer & polygon tidak punya id_rumah, jadi popup tidak akan muncul
+        if (feature && feature.get('id_rumah')) {
             const coordinates = feature.getGeometry().getCoordinates();
             const props = feature.getProperties();
             
-            // Mengambil nilai sesuai key di JSON asli
+            // Mengambil nilai
             const kelurahan = props.kelurahan || '-';
-            const idRumah = props.FID || '-';
+            const idRumah = props.id_rumah || '-';
             const alamat = props.alamat || '-';
             const jumlahPen = props.jumlah_pen || 0;
             const jenisBaha = props.jenis_baha || '-';
             const ventilasi = props.ventilasi_ || '-';
+
+            // Menentukan warna badge untuk popup
+            let badgeColorClass = 'text-green-600';
+            if ((ventilasi || '').toLowerCase() === 'buruk') badgeColorClass = 'text-red-600';
+            if ((ventilasi || '').toLowerCase() === 'cukup') badgeColorClass = 'text-yellow-600';
 
             // Template HTML Popup
             const html = `
@@ -144,7 +186,7 @@ function initMap() {
                         <div class="absolute inset-0 bg-black/20"></div>
                         <div class="absolute bottom-2 left-3 text-white">
                             <h3 class="font-bold text-lg leading-tight">${kelurahan}</h3>
-                            <p class="text-xs opacity-90">${FID}</p>
+                            <p class="text-xs opacity-90">${idRumah}</p>
                         </div>
                         <i class="fa-solid fa-house-medical absolute top-3 right-3 text-white/30 text-4xl"></i>
                     </div>
@@ -163,7 +205,7 @@ function initMap() {
                             </div>
                             <div class="col-span-2 bg-gray-50 p-2 rounded border border-gray-100">
                                 <p class="text-xs text-gray-500">Ventilasi</p>
-                                <p class="font-bold capitalize ${ventilasi.toLowerCase() === 'buruk' ? 'text-red-600' : 'text-green-600'}">
+                                <p class="font-bold capitalize ${badgeColorClass}">
                                     ${ventilasi}
                                 </p>
                             </div>
@@ -179,12 +221,17 @@ function initMap() {
         }
     });
 
-    // Cursor pointer saat hover fitur
+    // Cursor pointer saat hover (Hanya ubah kursor jika kena titik penduduk)
     map.on('pointermove', function (e) {
         if (e.dragging) return;
         const pixel = map.getEventPixel(e.originalEvent);
-        const hit = map.hasFeatureAtPixel(pixel);
-        map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+        const feature = map.forEachFeatureAtPixel(pixel, function(feature) {
+            return feature;
+        });
+        
+        // Cek jika feature ada DAN feature tersebut adalah titik penduduk
+        const hitPenduduk = feature && feature.get('id_rumah');
+        map.getTargetElement().style.cursor = hitPenduduk ? 'pointer' : '';
     });
 }
 
@@ -197,6 +244,14 @@ document.getElementById('check-polygon').addEventListener('change', (e) => {
 document.getElementById('check-points').addEventListener('change', (e) => {
     pendudukLayer.setVisible(e.target.checked);
 });
+
+// Listener untuk Checkbox Buffer (Jika Anda menambahkannya di HTML nanti dengan id 'check-buffer')
+const checkBuffer = document.getElementById('check-buffer');
+if (checkBuffer) {
+    checkBuffer.addEventListener('change', (e) => {
+        bufferLayer.setVisible(e.target.checked);
+    });
+}
 
 // 2. Filtering Logic
 const filterVent = document.getElementById('filter-ventilasi');
@@ -216,7 +271,11 @@ function applyFilter() {
         let matchBB = (bbValue === 'all') || (fBaha.includes(bbValue));
 
         if (matchVent && matchBB) {
-            const color = (fVent === 'buruk') ? '#ef4444' : '#10b981';
+            // Logika Warna Filter Sesuai Request (Cukup=Kuning)
+            let color = '#10b981'; // Default
+            if (fVent === 'buruk') color = '#ef4444';
+            else if (fVent === 'cukup') color = '#eab308';
+
             return new ol.style.Style({
                 image: new ol.style.Circle({
                     radius: 6,
@@ -225,11 +284,10 @@ function applyFilter() {
                 })
             });
         } else {
-            return null; // Hide (return null di OpenLayers menyembunyikan fitur)
+            return null; // Hide
         }
     });
     
-    // Beri sedikit delay agar style terupdate sebelum hitung stats
     setTimeout(updateStats, 100);
 }
 
@@ -244,8 +302,7 @@ btnReset.addEventListener('click', () => {
 
 // 3. Update Statistik
 function updateStats() {
-    // Cek apakah source sudah siap dan memiliki fitur
-    if (!pendudukSource || pendudukSource.getFeatures().length === 0) {
+    if (!pendudukSource) {
         document.getElementById('total-points').innerText = "0";
         return;
     }
@@ -266,7 +323,6 @@ function updateStats() {
         if(matchVent && matchBB) count++;
     });
 
-    // Update angka di panel
     const el = document.getElementById('total-points');
     el.innerText = count;
 }
