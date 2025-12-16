@@ -1,19 +1,50 @@
-.map {
+/* General Body Setting */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden; /* Mencegah scroll ganda pada peta */
+}
+
+/* Transisi Halaman (Landing Page -> Map) */
+.page-section {
+    transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100vh;
 }
 
-/* Styling untuk Popup OpenLayers */
+.hidden-section {
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.active-section {
+    transform: translateY(0);
+    opacity: 1;
+    z-index: 10;
+}
+
+/* Map Container */
+#map {
+    width: 100%;
+    height: 100vh;
+}
+
+/* OpenLayers Popup Styling Override */
 .ol-popup {
     position: absolute;
     background-color: white;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-    padding: 0; /* Padding 0 agar card menyatu */
-    border-radius: 10px;
-    border: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
     bottom: 12px;
     left: -50px;
-    min-width: 300px; /* Lebar minimum popup */
+    min-width: 280px;
+    font-size: 14px;
 }
 
 .ol-popup:after, .ol-popup:before {
@@ -34,46 +65,34 @@
 }
 
 .ol-popup:before {
-    border-top-color: #cccccc;
+    border-top-color: #e5e7eb;
     border-width: 11px;
     left: 48px;
     margin-left: -11px;
 }
 
-.ol-popup-closer {
-    text-decoration: none;
-    position: absolute;
-    top: 5px;
-    right: 10px;
-    font-size: 1.5rem;
-    color: #333;
-    z-index: 100;
+/* Sidebar Control Panel */
+.control-panel {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(5px);
+    transition: transform 0.3s ease;
 }
 
-.ol-popup-closer:after {
-    content: "✖";
+.control-panel.collapsed {
+    transform: translateX(-100%);
 }
 
-.ol-popup-closer:hover {
-    color: red;
+/* Loading Spinner (Optional) */
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
 }
 
-/* Styling Overlay Checkbox */
-.overlay-container {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 1000;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.2);
-}
-
-/* Styling Card di dalam Popup */
-.popup-card-img {
-    height: 150px;
-    object-fit: cover;
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
