@@ -105,10 +105,11 @@ function initMap() {
         
         if (vent) {
             const vLower = vent.toLowerCase();
-            if (vLower === 'buruk') {
-                color = '#ef4444'; // Buruk (Merah)
+            // PERBAIKAN: Cek 'kurang' bukan 'buruk'
+            if (vLower === 'kurang') {
+                color = '#ef4444'; // Kurang (Merah)
             } else if (vLower === 'cukup') {
-                color = '#eab308'; // Cukup (Kuning) - Sesuai request
+                color = '#eab308'; // Cukup (Kuning)
             }
         }
         
@@ -161,7 +162,6 @@ function initMap() {
         });
 
         // Pastikan popup HANYA muncul jika feature punya 'id_rumah' (Layer Penduduk)
-        // Layer buffer & polygon tidak punya id_rumah, jadi popup tidak akan muncul
         if (feature && feature.get('id_rumah')) {
             const coordinates = feature.getGeometry().getCoordinates();
             const props = feature.getProperties();
@@ -176,7 +176,8 @@ function initMap() {
 
             // Menentukan warna badge untuk popup
             let badgeColorClass = 'text-green-600';
-            if ((ventilasi || '').toLowerCase() === 'buruk') badgeColorClass = 'text-red-600';
+            // PERBAIKAN: Cek 'kurang'
+            if ((ventilasi || '').toLowerCase() === 'kurang') badgeColorClass = 'text-red-600';
             if ((ventilasi || '').toLowerCase() === 'cukup') badgeColorClass = 'text-yellow-600';
 
             // Template HTML Popup
@@ -245,7 +246,7 @@ document.getElementById('check-points').addEventListener('change', (e) => {
     pendudukLayer.setVisible(e.target.checked);
 });
 
-// Listener untuk Checkbox Buffer (Jika Anda menambahkannya di HTML nanti dengan id 'check-buffer')
+// Listener untuk Checkbox Buffer
 const checkBuffer = document.getElementById('check-buffer');
 if (checkBuffer) {
     checkBuffer.addEventListener('change', (e) => {
@@ -262,19 +263,23 @@ function applyFilter() {
     const ventValue = filterVent.value.toLowerCase();
     const bbValue = filterBB.value.toLowerCase();
 
+    // MAPPING VALUE: Jika HTML mengirim 'buruk', kita cari 'kurang' di data
+    let searchVent = ventValue;
+    if (searchVent === 'buruk') searchVent = 'kurang';
+
     // Style function yang dinamis untuk filtering
     pendudukLayer.setStyle(function(feature) {
         const fVent = (feature.get('ventilasi_') || '').toLowerCase();
         const fBaha = (feature.get('jenis_baha') || '').toLowerCase();
 
-        let matchVent = (ventValue === 'all') || (fVent.includes(ventValue));
+        let matchVent = (ventValue === 'all') || (fVent.includes(searchVent));
         let matchBB = (bbValue === 'all') || (fBaha.includes(bbValue));
 
         if (matchVent && matchBB) {
-            // Logika Warna Filter Sesuai Request (Cukup=Kuning)
-            let color = '#10b981'; // Default
-            if (fVent === 'buruk') color = '#ef4444';
-            else if (fVent === 'cukup') color = '#eab308';
+            // Logika Warna Filter
+            let color = '#10b981'; // Default (Baik)
+            if (fVent === 'kurang') color = '#ef4444'; // Kurang = Merah
+            else if (fVent === 'cukup') color = '#eab308'; // Cukup = Kuning
 
             return new ol.style.Style({
                 image: new ol.style.Circle({
@@ -309,6 +314,10 @@ function updateStats() {
     
     const ventValue = filterVent.value.toLowerCase();
     const bbValue = filterBB.value.toLowerCase();
+
+    // MAPPING VALUE di Stats juga
+    let searchVent = ventValue;
+    if (searchVent === 'buruk') searchVent = 'kurang';
     
     const features = pendudukSource.getFeatures();
     let count = 0;
@@ -317,7 +326,7 @@ function updateStats() {
         const fVent = (f.get('ventilasi_') || '').toLowerCase();
         const fBaha = (f.get('jenis_baha') || '').toLowerCase();
         
-        let matchVent = (ventValue === 'all') || (fVent.includes(ventValue));
+        let matchVent = (ventValue === 'all') || (fVent.includes(searchVent));
         let matchBB = (bbValue === 'all') || (fBaha.includes(bbValue));
         
         if(matchVent && matchBB) count++;
